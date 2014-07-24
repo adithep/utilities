@@ -57,29 +57,18 @@
         var rr = root.replace("./tem/", "");
 
         if (obj[rr]) {
-          var lo1 = {
-            key_1_key: "location_id",
-            key_1_s: "locations",
-            _v_1: obj[rr],
-            key_2_key: "img_uuid",
-            key_2_s: "img",
-            _v_2: fileStats.name
+          var lo = {
+            img_uuid: fileStats.name,
+            location_id_arr: [obj[rr]],
+            location_ty_n_arr: [rr],
+            country_n_arr: ["Thailand"],
+            city_n_arr: ["Bangkok"]
           };
-
-          var lo2 = {
-            key_key: "location_ty_n",
-            key_s: "location_ty",
-            _v: obj2[rr],
-            key_2_key: "img_uuid",
-            key_2_s: "img",
-            _v_2: fileStats.name
-          };
-          arr.push(lo1);
-          arr.push(lo2);
+          arr.push(lo);
         } else {
-          console.log("cant " + rr)
+          console.log("cant " + rr);
         }
-        
+
       }
     , errors: function (root, nodeStatsArray, next) {
         next();
