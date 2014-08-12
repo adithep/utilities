@@ -1,4 +1,6 @@
-phone_format.format_number = (number, country) ->
+# coffeelint: disable=max_line_length
+
+Mu.format_number = (number, country) ->
   if number
     if country
       if typeof country is 'string'
@@ -34,7 +36,3 @@ phone_format.format_number = (number, country) ->
     if phone_format.isValidNumber(phone_format.formatE164("US", number), "US")
       return number
   false
-    
-      
-
- 

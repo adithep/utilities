@@ -9,7 +9,7 @@ Package.on_use(function (api, where) {
     'bads:core-lib',
     'coffeescript'
   ]);
-  api.add_files(['phoneformat.js', 'emailformat.coffee', 'fuzzy-search.js'], ['client', 'server']);
+  api.add_files(['util.coffee', 'phoneformat.js', 'phoneformat_u.coffee', 'fuzzy-search.js'], ['client', 'server']);
 });
 
 Package.on_test(function (api) {

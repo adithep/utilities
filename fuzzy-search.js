@@ -72,7 +72,7 @@ function levenshteinDistanceExt(arrayA, arrayB)
 // maxDistance parameter is used to limit results to less-or-more similar words in small datasets
 //   -1 means "auto". Function will auto set maxDistance based on searchString.
 //   undefined means "no limit". Searching for string "beer" can return a "wife" (we don't want that).
-utilities.most_similar_string = function(cursor, fieldName, searchString, maxDistance, caseSensitive)
+Mu.most_similar_string = function(cursor, fieldName, searchString, maxDistance, caseSensitive)
 {
 	if(searchString === "")	return "";
 
