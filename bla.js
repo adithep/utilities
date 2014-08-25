@@ -1,3 +1,26 @@
+Mu.With = function (data, contentFunc) {
+  var view = Blaze.View('with', contentFunc);
+
+  view.dataVar = new Blaze.ReactiveVar;
+
+  view.initd = function () {
+    return data;
+  };
+
+  view.onCreated(function () {
+    if (typeof data === 'function') {
+      // `data` is a reactive function
+      view.autorun(function () {
+        view.dataVar.set(data());
+      }, view.parentView);
+    } else {
+      view.dataVar.set(data);
+    }
+  });
+
+  return view;
+};
+
 Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
   var eachView = Blaze.View('each', function () {
     var subviews = this.initialSubviews;
@@ -8,6 +31,7 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
     }
     return subviews;
   });
+  eachView.idArr = [];
   eachView.initialSubviews = [];
   eachView.numItems = 0;
   eachView.inElseMode = false;
@@ -29,10 +53,26 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
     }, {
       addedAt: function (id, item, index) {
         Deps.nonreactive(function () {
-
-          var newItemView = Blaze.With(item, eachView.contentFunc);
+          var num;
+          var newItemView = Mu.With(item, eachView.contentFunc);
           eachView.numItems++;
+          if (item.ctl && item.ctl.doc && item.ctl.doc.group_key_by_s_n) {
+            var ctl = item.ctl.doc;
 
+            if (item.doc._s_n === ctl.group_key_by_s_n) {
+              if (eachView.idArr.indexOf(item.doc[ctl.group_key_by_key]) !== -1) {
+                num = eachView.idArr.indexOf(item.doc[ctl.group_key_by_key]);
+              }
+            } else {
+              if (ctl.group_key_slave[item.doc._s_n]) {
+                var slave_key = ctl.group_key_slave[item.doc._s_n];
+                if (eachView.idArr.indexOf(item.doc[slave_key]) !== -1) {
+                  num = eachView.idArr.indexOf(item.doc[slave_key]);
+                }
+              }
+            }
+          }
+          var itemView, idata, dkey;
           if (eachView.expandedValueDep) {
             eachView.expandedValueDep.changed();
           } else if (eachView.domrange) {
@@ -40,14 +80,37 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
               eachView.domrange.removeMember(0);
               eachView.inElseMode = false;
             }
+            if (num || num === 0) {
+              itemView = eachView.domrange.getMember(num).view;
+              idata = itemView.dataVar.get();
+              for (dkey in item.doc) {
+                idata[dkey] = item.doc[dkey];
+              }
+              itemView.dataVar.set(idata);
+            } else {
+              var range = Blaze.materializeView(newItemView, eachView);
+              eachView.domrange.addMember(range, index);
+              eachView.idArr[index] = id;
+            }
 
-            var range = Blaze.materializeView(newItemView, eachView);
-            eachView.domrange.addMember(range, index);
 
           } else {
-            console.log(eachView);
-            eachView.initialSubviews.splice(index, 0, newItemView);
+            if (num || num === 0) {
+
+              itemView = eachView.initialSubviews[num];
+              idata = itemView.initd();
+              for (dkey in item.doc) {
+                idata.doc[dkey] = item.doc[dkey];
+              }
+              var nnewItemView = Mu.With(idata, eachView.contentFunc);
+              eachView.initialSubviews[num] = nnewItemView;
+            } else {
+              eachView.initialSubviews.splice(index, 0, newItemView);
+              eachView.idArr[index] = id;
+            }
+
           }
+
         });
       },
       removedAt: function (id, item, index) {
