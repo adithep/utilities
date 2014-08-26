@@ -56,21 +56,8 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
           var num;
           var newItemView = Mu.With(item, eachView.contentFunc);
           eachView.numItems++;
-          if (item.ctl && item.ctl.doc && item.ctl.doc.group_key_by_s_n) {
-            var ctl = item.ctl.doc;
-
-            if (item.doc._s_n === ctl.group_key_by_s_n) {
-              if (eachView.idArr.indexOf(item.doc[ctl.group_key_by_key]) !== -1) {
-                num = eachView.idArr.indexOf(item.doc[ctl.group_key_by_key]);
-              }
-            } else {
-              if (ctl.group_key_slave[item.doc._s_n]) {
-                var slave_key = ctl.group_key_slave[item.doc._s_n];
-                if (eachView.idArr.indexOf(item.doc[slave_key]) !== -1) {
-                  num = eachView.idArr.indexOf(item.doc[slave_key]);
-                }
-              }
-            }
+          if (item.ctl && item.get_slave_num) {
+            num = item.get_slave_num(eachView.idArr);
           }
           var itemView, idata, dkey;
           if (eachView.expandedValueDep) {
@@ -83,9 +70,7 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
             if (num || num === 0) {
               itemView = eachView.domrange.getMember(num).view;
               idata = itemView.dataVar.get();
-              for (dkey in item.doc) {
-                idata[dkey] = item.doc[dkey];
-              }
+              idata.join_doc(item.doc);
               itemView.dataVar.set(idata);
             } else {
               var range = Blaze.materializeView(newItemView, eachView);
@@ -99,9 +84,7 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
 
               itemView = eachView.initialSubviews[num];
               idata = itemView.initd();
-              for (dkey in item.doc) {
-                idata.doc[dkey] = item.doc[dkey];
-              }
+              idata.join_doc(item.doc);
               var nnewItemView = Mu.With(idata, eachView.contentFunc);
               eachView.initialSubviews[num] = nnewItemView;
             } else {
@@ -135,6 +118,12 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
       changedAt: function (id, newItem, oldItem, index) {
         Deps.nonreactive(function () {
           var itemView;
+          if (newItem.ctl && newItem.get_slave_num) {
+            num = newItem.get_slave_num(eachView.idArr);
+            if (num || num === 0) {
+              index = num;
+            }
+          }
           if (eachView.expandedValueDep) {
             eachView.expandedValueDep.changed();
           } else if (eachView.domrange) {
@@ -142,7 +131,9 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
           } else {
             itemView = eachView.initialSubviews[index];
           }
-          itemView.dataVar.set(newItem);
+          nitem = itemView.dataVar.get();
+          nitem.join_doc(newItem.doc);
+          itemView.dataVar.set(nitem);
         });
       },
       movedTo: function (id, item, fromIndex, toIndex) {

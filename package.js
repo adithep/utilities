@@ -17,10 +17,15 @@ Package.on_use(function (api, where) {
   ]);
   api.add_files([
     'util.coffee',
-    'bla.js',
     'phoneformat.js',
     'phoneformat_u.coffee',
-    'fuzzy-search.js'], ['client', 'server']);
+    'fuzzy-search.js'
+  ], ['client', 'server']);
+
+  api.add_files([
+    'bla.js'
+  ], 'client');
+
 });
 
 Package.on_test(function (api) {
