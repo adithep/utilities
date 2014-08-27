@@ -53,11 +53,13 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
     }, {
       addedAt: function (id, item, index) {
         Deps.nonreactive(function () {
-          var num;
+          var obj, num, nid;
           var newItemView = Mu.With(item, eachView.contentFunc);
           eachView.numItems++;
           if (item.ctl && item.get_slave_num) {
-            num = item.get_slave_num(eachView.idArr);
+            obj = item.get_slave_num(eachView.idArr);
+            num = obj.num;
+            nid = obj.id;
           }
           var itemView, idata, dkey;
           if (eachView.expandedValueDep) {
@@ -75,7 +77,7 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
             } else {
               var range = Blaze.materializeView(newItemView, eachView);
               eachView.domrange.addMember(range, index);
-              eachView.idArr[index] = id;
+              eachView.idArr[index] = nid;
             }
 
 
@@ -89,7 +91,7 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
               eachView.initialSubviews[num] = nnewItemView;
             } else {
               eachView.initialSubviews.splice(index, 0, newItemView);
-              eachView.idArr[index] = id;
+              eachView.idArr[index] = nid;
             }
 
           }
@@ -99,10 +101,23 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
       removedAt: function (id, item, index) {
         Deps.nonreactive(function () {
           eachView.numItems--;
+          if (item.ctl && item.get_slave_num) {
+            obj = item.get_slave_num(eachView.idArr);
+            if (obj.num || obj.num === 0) {
+              index = obj.num;
+            }
+          }
           if (eachView.expandedValueDep) {
             eachView.expandedValueDep.changed();
           } else if (eachView.domrange) {
-            eachView.domrange.removeMember(index);
+            itemDat = eachView.domrange.getMember(index).view.dataVar.get();
+            itemDat.unjoin_doc(item.doc);
+            if (Object.keys(itemDat.doc).length === 0) {
+              eachView.domrange.removeMember(index);
+            } else {
+              eachView.domrange.getMember(index).view.dataVar.set(itemDat);
+            }
+
             if (eachView.elseFunc && eachView.numItems === 0) {
               eachView.inElseMode = true;
               eachView.domrange.addMember(
@@ -111,17 +126,25 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
                   eachView), 0);
             }
           } else {
-            eachView.initialSubviews.splice(index, 1);
+            itemDat = eachView.initialSubviews[index].initd();
+            itemDat.unjoin_doc(item);
+            if (Object.keys(itemDat.doc).length === 0) {
+              eachView.initialSubviews.splice(index, 1);
+            } else {
+              var nnewItemView = Mu.With(itemDat, eachView.contentFunc);
+              eachView.initialSubviews[index] = nnewItemView;
+            }
+
           }
         });
       },
       changedAt: function (id, newItem, oldItem, index) {
         Deps.nonreactive(function () {
-          var itemView;
+          var itemView, obj;
           if (newItem.ctl && newItem.get_slave_num) {
-            num = newItem.get_slave_num(eachView.idArr);
-            if (num || num === 0) {
-              index = num;
+            obj = newItem.get_slave_num(eachView.idArr);
+            if (obj.num || obj.num === 0) {
+              index = obj.num;
             }
           }
           if (eachView.expandedValueDep) {
@@ -138,16 +161,34 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
       },
       movedTo: function (id, item, fromIndex, toIndex) {
         Deps.nonreactive(function () {
-          if (eachView.expandedValueDep) {
-            eachView.expandedValueDep.changed();
-          } else if (eachView.domrange) {
-            eachView.domrange.moveMember(fromIndex, toIndex);
-          } else {
-            var subviews = eachView.initialSubviews;
-            var itemView = subviews[fromIndex];
-            subviews.splice(fromIndex, 1);
-            subviews.splice(toIndex, 0, itemView);
+          var obj;
+          if (!item.check_slave || item.check_slave()) {
+
+            if (item.check_slave) {
+              obj = item.get_slave_num(eachView.idArr);
+
+              if (obj && obj.num >= 0 && obj.num !== fromIndex) {
+                toIndex = toIndex - (fromIndex - obj.num);
+                fromIndex = obj.num;
+              }
+            }
+
+            eachView.idArr.splice(fromIndex, 1);
+            eachView.idArr.splice(toIndex, 0, obj.id);
+
+            if (eachView.expandedValueDep) {
+              eachView.expandedValueDep.changed();
+            } else if (eachView.domrange) {
+              eachView.domrange.moveMember(fromIndex, toIndex);
+            } else {
+              var subviews = eachView.initialSubviews;
+              var itemView = subviews[fromIndex];
+              subviews.splice(fromIndex, 1);
+              subviews.splice(toIndex, 0, itemView);
+            }
+
           }
+
         });
       }
     });
