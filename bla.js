@@ -100,6 +100,7 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
       },
       removedAt: function (id, item, index) {
         Deps.nonreactive(function () {
+          var len;
           eachView.numItems--;
           if (item.ctl && item.get_slave_num) {
             obj = item.get_slave_num(eachView.idArr);
@@ -116,6 +117,13 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
               eachView.domrange.removeMember(index);
             } else {
               eachView.domrange.getMember(index).view.dataVar.set(itemDat);
+              if (item.check_slave && item.check_slave()) {
+                len = eachView.domrange.members.length - 1;
+                eachView.domrange.moveMember(index, len);
+                eachView.idArr.splice(index, 1);
+                eachView.idArr.splice(len, 0, obj.id);
+
+              }
             }
 
             if (eachView.elseFunc && eachView.numItems === 0) {
@@ -132,10 +140,22 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
               eachView.initialSubviews.splice(index, 1);
             } else {
               var nnewItemView = Mu.With(itemDat, eachView.contentFunc);
-              eachView.initialSubviews[index] = nnewItemView;
+              if (item.check_slave && item.check_slave()) {
+                len = eachView.initialSubviews.length - 1;
+                eachView.initialSubviews.splice(index, 1);
+                eachView.initialSubviews.splice(len, 0, nnewItemView);
+                eachView.idArr.splice(index, 1);
+                eachView.idArr.splice(len, 0, obj.id);
+
+              } else {
+                eachView.initialSubviews[index] = nnewItemView;
+              }
             }
 
           }
+
+
+
         });
       },
       changedAt: function (id, newItem, oldItem, index) {
@@ -166,10 +186,15 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
 
             if (item.check_slave) {
               obj = item.get_slave_num(eachView.idArr);
-
               if (obj && obj.num >= 0 && obj.num !== fromIndex) {
                 toIndex = toIndex - (fromIndex - obj.num);
                 fromIndex = obj.num;
+                var log_obj = {
+                  idArr: idArr,
+                  obj: obj,
+                  fromIndex: fromIndex,
+                  toIndex: toIndex
+                };
               }
             }
 
