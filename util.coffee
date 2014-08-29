@@ -13,3 +13,6 @@ Mu.remove_first_slash = (str) ->
 
 Mu.remove_last_slash = (str) ->
   return str.replace(/\/$/g, '')
+
+Mu.del_white_spa = (str) ->
+  return str.replace(/^\s+/, '').replace(/\s+$/, '')
