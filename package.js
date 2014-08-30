@@ -26,6 +26,10 @@ Package.on_use(function (api, where) {
     'bla.js'
   ], 'client');
 
+  api.add_files([
+    'muserve.coffee'
+  ], 'server');
+
 });
 
 Package.on_test(function (api) {
