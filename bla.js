@@ -1,13 +1,13 @@
 Mu.With = function (data, contentFunc) {
   var view = Blaze.View('with', contentFunc);
 
-  view.dataVar = new Blaze.ReactiveVar;
+  view.dataVar = new ReactiveVar;
 
   view.initd = function () {
     return data;
   };
 
-  view.onCreated(function () {
+  view.onViewCreated(function () {
     if (typeof data === 'function') {
       // `data` is a reactive function
       view.autorun(function () {
@@ -25,8 +25,8 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
   var eachView = Blaze.View('each', function () {
     var subviews = this.initialSubviews;
     this.initialSubviews = null;
-    if (this.isCreatedForExpansion) {
-      this.expandedValueDep = new Deps.Dependency;
+    if (this._isCreatedForExpansion) {
+      this.expandedValueDep = new Tracker.Dependency;
       this.expandedValueDep.depend();
     }
     return subviews;
@@ -38,9 +38,9 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
   eachView.stopHandle = null;
   eachView.contentFunc = contentFunc;
   eachView.elseFunc = elseFunc;
-  eachView.argVar = new Blaze.ReactiveVar;
+  eachView.argVar = new ReactiveVar;
 
-  eachView.onCreated(function () {
+  eachView.onViewCreated(function () {
     // We evaluate argFunc in an autorun to make sure
     // Blaze.currentView is always set when it runs (rather than
     // passing argFunc straight to ObserveSequence).
@@ -52,8 +52,7 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
       return eachView.argVar.get();
     }, {
       addedAt: function (id, item, index) {
-        Deps.nonreactive(function () {
-          var obj, num, nid;
+        Tracker.nonreactive(function () {
           var newItemView = Mu.With(item, eachView.contentFunc);
           eachView.numItems++;
           if (item.ctl && item.get_slave_num) {
@@ -64,19 +63,19 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
           var itemView, idata, dkey;
           if (eachView.expandedValueDep) {
             eachView.expandedValueDep.changed();
-          } else if (eachView.domrange) {
+          } else if (eachView._domrange) {
             if (eachView.inElseMode) {
-              eachView.domrange.removeMember(0);
+              eachView._domrange.removeMember(0);
               eachView.inElseMode = false;
             }
             if (num || num === 0) {
-              itemView = eachView.domrange.getMember(num).view;
+              itemView = eachView._domrange.getMember(num).view;
               idata = itemView.dataVar.get();
               idata.join_doc(item.doc);
               itemView.dataVar.set(idata);
             } else {
-              var range = Blaze.materializeView(newItemView, eachView);
-              eachView.domrange.addMember(range, index);
+              var range = Blaze._materializeView(newItemView, eachView);
+              eachView._domrange.addMember(range, index);
               eachView.idArr[index] = nid;
             }
 
@@ -99,8 +98,7 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
         });
       },
       removedAt: function (id, item, index) {
-        Deps.nonreactive(function () {
-          var len;
+        Tracker.nonreactive(function () {
           eachView.numItems--;
           if (item.ctl && item.get_slave_num) {
             obj = item.get_slave_num(eachView.idArr);
@@ -110,30 +108,29 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
           }
           if (eachView.expandedValueDep) {
             eachView.expandedValueDep.changed();
-          } else if (eachView.domrange) {
-            itemDat = eachView.domrange.getMember(index).view.dataVar.get();
+          } else if (eachView._domrange) {
+            itemDat = eachView._domrange.getMember(index).view.dataVar.get();
             itemDat.unjoin_doc(item.doc);
             if (Object.keys(itemDat.doc).length === 0) {
-              eachView.domrange.removeMember(index);
+              eachView._domrange.removeMember(index);
             } else {
-              eachView.domrange.getMember(index).view.dataVar.set(itemDat);
+              eachView._domrange.getMember(index).view.dataVar.set(itemDat);
               if (item.check_slave && item.check_slave()) {
-                len = eachView.domrange.members.length - 1;
-                eachView.domrange.moveMember(index, len);
+                len = eachView._domrange.members.length - 1;
+                eachView._domrange.moveMember(index, len);
                 eachView.idArr.splice(index, 1);
                 eachView.idArr.splice(len, 0, obj.id);
 
               }
             }
-
             if (eachView.elseFunc && eachView.numItems === 0) {
               eachView.inElseMode = true;
-              eachView.domrange.addMember(
-                Blaze.materializeView(
+              eachView._domrange.addMember(
+                Blaze._materializeView(
                   Blaze.View('each_else',eachView.elseFunc),
                   eachView), 0);
             }
-          } else {
+        } else {
             itemDat = eachView.initialSubviews[index].initd();
             itemDat.unjoin_doc(item);
             if (Object.keys(itemDat.doc).length === 0) {
@@ -153,13 +150,10 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
             }
 
           }
-
-
-
         });
       },
       changedAt: function (id, newItem, oldItem, index) {
-        Deps.nonreactive(function () {
+        Tracker.nonreactive(function () {
           var itemView, obj;
           if (newItem.ctl && newItem.get_slave_num) {
             obj = newItem.get_slave_num(eachView.idArr);
@@ -169,8 +163,8 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
           }
           if (eachView.expandedValueDep) {
             eachView.expandedValueDep.changed();
-          } else if (eachView.domrange) {
-            itemView = eachView.domrange.getMember(index).view;
+          } else if (eachView._domrange) {
+            itemView = eachView._domrange.getMember(index).view;
           } else {
             itemView = eachView.initialSubviews[index];
           }
@@ -180,7 +174,7 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
         });
       },
       movedTo: function (id, item, fromIndex, toIndex) {
-        Deps.nonreactive(function () {
+        Tracker.nonreactive(function () {
           var obj;
           if (!item.check_slave || item.check_slave()) {
 
@@ -200,20 +194,18 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
 
             eachView.idArr.splice(fromIndex, 1);
             eachView.idArr.splice(toIndex, 0, obj.id);
-
             if (eachView.expandedValueDep) {
+
               eachView.expandedValueDep.changed();
-            } else if (eachView.domrange) {
-              eachView.domrange.moveMember(fromIndex, toIndex);
+            } else if (eachView._domrange) {
+              eachView._domrange.moveMember(fromIndex, toIndex);
             } else {
               var subviews = eachView.initialSubviews;
               var itemView = subviews[fromIndex];
               subviews.splice(fromIndex, 1);
               subviews.splice(toIndex, 0, itemView);
             }
-
           }
-
         });
       }
     });
@@ -225,7 +217,7 @@ Mu.Eacha = function (argFunc, contentFunc, elseFunc) {
     }
   });
 
-  eachView.onDestroyed(function () {
+  eachView.onViewDestroyed(function () {
     if (eachView.stopHandle)
       eachView.stopHandle.stop();
   });

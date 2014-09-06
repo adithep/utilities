@@ -5,7 +5,7 @@ Package.describe({
 });
 
 Package.on_use(function (api, where) {
-  api.versionsFrom("METEOR-CORE@0.9.0-atm");
+  api.versionsFrom('METEOR@0.9.2-rc1');
   api.use([
     'bads:core-lib',
     'blaze',
@@ -13,6 +13,7 @@ Package.on_use(function (api, where) {
     'deps',
     'underscore',
     'observe-sequence',
+    'reactive-var',
     'coffeescript'
   ]);
   api.add_files([
